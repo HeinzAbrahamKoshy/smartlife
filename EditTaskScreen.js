@@ -6,13 +6,14 @@ import { Picker } from '@react-native-picker/picker';
 const EditTaskScreen = ({ route, navigation }) => {
   const { taskId, taskDetails } = route.params;
 
-  const [taskName, setTaskName] = useState(taskDetails.name || 'Task Name');
-  const [priority, setPriority] = useState(taskDetails.priority || 'High');
-  const [dueDate, setDueDate] = useState(taskDetails.dueDate ? new Date(taskDetails.dueDate) : new Date());
-  const [dueTime, setDueTime] = useState(taskDetails.dueTime ? new Date(taskDetails.dueTime) : new Date());
-  const [reminder, setReminder] = useState(taskDetails.reminder !== undefined ? taskDetails.reminder : true);
+  const [taskName, setTaskName] = useState(taskDetails?.name || 'Task Name');
+  const [priority, setPriority] = useState(taskDetails?.priority || 'High');
+  const [dueDate, setDueDate] = useState(taskDetails?.dueDate ? new Date(taskDetails.dueDate) : new Date());
+  const [dueTime, setDueTime] = useState(taskDetails?.dueTime ? new Date(taskDetails.dueTime) : new Date());
+  const [reminder, setReminder] = useState(taskDetails?.reminder !== undefined ? taskDetails.reminder : true);
   const [reminderTiming, setReminderTiming] = useState('1day');
   const [showDatePicker, setShowDatePicker] = useState(false); // New state for showing/hiding date picker
+  const [showTimePicker, setShowTimePicker] = useState(false); // New state for showing/hiding time picker
 
   const handleSaveChanges = () => {
     // Calculate reminder time based on selected reminder timing
@@ -32,6 +33,10 @@ const EditTaskScreen = ({ route, navigation }) => {
     setShowDatePicker(!showDatePicker);
   };
 
+  const toggleTimePicker = () => {
+    setShowTimePicker(!showTimePicker);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Edit Task</Text>
@@ -49,12 +54,6 @@ const EditTaskScreen = ({ route, navigation }) => {
         <Picker.Item label="Medium" value="Medium" />
         <Picker.Item label="Low" value="Low" />
       </Picker>
-      <TextInput
-        style={styles.input}
-        value={dueTime.toLocaleTimeString()}
-        placeholder="Due Time"
-        onChangeText={(text) => setDueTime(new Date(text))}
-      />
 
       <Button title="Select Due Date" onPress={toggleDatePicker} />
       {showDatePicker && (
@@ -65,6 +64,19 @@ const EditTaskScreen = ({ route, navigation }) => {
           onChange={(event, selectedDate) => {
             setShowDatePicker(false);
             setDueDate(selectedDate || dueDate);
+          }}
+        />
+      )}
+
+      <Button title="Select Due Time" onPress={toggleTimePicker} />
+      {showTimePicker && (
+        <DateTimePicker
+          value={dueTime}
+          mode="time"
+          display="spinner"
+          onChange={(event, selectedTime) => {
+            setShowTimePicker(false);
+            setDueTime(selectedTime || dueTime);
           }}
         />
       )}
