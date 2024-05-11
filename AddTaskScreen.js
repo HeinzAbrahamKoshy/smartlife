@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Switch } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native'; 
+import { Picker } from '@react-native-picker/picker';
 
 const AddTaskScreen = () => {
+  const navigation = useNavigation(); // Initialize navigation
   const [taskName, setTaskName] = useState('');
   const [priority, setPriority] = useState('');
   const [dueDate, setDueDate] = useState(new Date());
@@ -15,7 +19,8 @@ const AddTaskScreen = () => {
   const handleAddTask = async () => {
     // Prepare task object
     const task = {
-      taskName,
+      id: String(new Date().getTime()), // Generate a unique ID for the task
+      name: taskName,
       priority,
       dueDate: dueDate.toISOString().split('T')[0], // Format dueDate as YYYY-MM-DD
       dueTime: dueTime.toLocaleTimeString(), // Format dueTime as HH:MM:SS
@@ -45,6 +50,8 @@ const AddTaskScreen = () => {
       setReminder(false);
 
       console.log('Task added:', task);
+      // Navigate to TaskListScreen with the added task as a parameter
+      navigation.navigate('TasksList', { newTask: task });
     } catch (error) {
       console.error('Error adding task:', error);
     }
@@ -76,46 +83,58 @@ const AddTaskScreen = () => {
     <View style={styles.container}>
       <Text style={styles.heading}>Add Task</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, styles.taskInput]}
         placeholder="Task Name"
         value={taskName}
         onChangeText={setTaskName}
+        multiline={true}
+        numberOfLines={4} // Increased height
       />
-      <TextInput
+      <Picker
+        selectedValue={priority}
         style={styles.input}
-        placeholder="Priority"
-        value={priority}
-        onChangeText={setPriority}
-      />
+        onValueChange={(itemValue) => setPriority(itemValue)}
+      >
+        <Picker.Item label="High" value="High" />
+        <Picker.Item label="Medium" value="Medium" />
+        <Picker.Item label="Low" value="Low" />
+      </Picker>
       {/* Due Date picker */}
-      <View style={styles.datePickerContainer}>
-        <Button title="Select Due Date" onPress={showDatePickerModal} />
-        {showDatePicker && (
-          <DateTimePicker
-            value={dueDate}
-            mode="date"
-            display="default"
-            onChange={handleDatePickerChange}
-          />
-        )}
-      </View>
+      <TouchableOpacity style={styles.datePickerContainer} onPress={showDatePickerModal}>
+        <Ionicons name="calendar-outline" size={24} color="#555" />
+        <Text style={styles.datePickerText}>Select Due Date</Text>
+      </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          value={dueDate}
+          mode="date"
+          display="default"
+          onChange={handleDatePickerChange}
+        />
+      )}
       {/* Due Time picker */}
-      <View style={styles.datePickerContainer}>
-        <Button title="Select Due Time" onPress={showTimePickerModal} />
-        {showTimePicker && (
-          <DateTimePicker
-            value={dueTime}
-            mode="time"
-            display="default"
-            onChange={handleTimePickerChange}
-          />
-        )}
-      </View>
+      <TouchableOpacity style={styles.datePickerContainer} onPress={showTimePickerModal}>
+        <Ionicons name="time-outline" size={24} color="#555" />
+        <Text style={styles.datePickerText}>Select Due Time</Text>
+      </TouchableOpacity>
+      {showTimePicker && (
+        <DateTimePicker
+          value={dueTime}
+          mode="time"
+          display="default"
+          onChange={handleTimePickerChange}
+        />
+      )}
+      {/* Reminder switch */}
       <View style={styles.checkboxContainer}>
         <Text>Reminder</Text>
         <Switch value={reminder} onValueChange={setReminder} />
       </View>
-      <Button title="Add Task" onPress={handleAddTask} />
+      {/* Add Task button */}
+      <TouchableOpacity style={styles.addButton} onPress={handleAddTask}>
+        <Ionicons name="add-circle-outline" size={24} color="#fff" />
+        <Text style={styles.addButtonText}>Add Task</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -124,6 +143,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#fff',
   },
   heading: {
     fontSize: 20,
@@ -137,10 +157,38 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
   },
+  taskInput: {
+    backgroundColor: 'rgba(138, 43, 226, 0.2)', // Lighter and more transparent purple shade
+    height: 120, // Increased height
+    borderRadius: 10, // Rounded corners
+  },
+  priorityInput: {
+    backgroundColor: 'rgba(30, 144, 255, 0.2)', // Lighter and more transparent blue shade
+    borderRadius: 10, // Rounded corners
+  },
   datePickerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  datePickerText: {
+    marginLeft: 10,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 128, 0, 0.5)', // Lighter and more transparent green shade
+    paddingVertical: 15,
+    borderRadius: 10, // Rounded corners
+    alignSelf: 'center', // Center the button
+    width: '50%', // Decreased width
+  },
+  addButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 10,
   },
   checkboxContainer: {
     flexDirection: 'row',
