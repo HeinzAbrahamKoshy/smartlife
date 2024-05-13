@@ -1,23 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Button } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Swipeable } from 'react-native-gesture-handler'; // Import Swipeable from react-native-gesture-handler
-import { useEffect } from 'react';
+import { Swipeable } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TasksListScreen = () => {
   const navigation = useNavigation();
-  const [tasks, setTasks] = useState([
-    { id: '1', name: 'Task 1', priority: 'High', dueDate: '2024-04-20', dueTime: '10:00 AM', reminder: true },
-    { id: '2', name: 'Task 2', priority: 'Medium', dueDate: '2024-04-22', dueTime: '3:00 PM', reminder: false },
-    // Add more tasks as needed
-  ]);
-  
+  const [tasks, setTasks] = useState([]);
+
   useEffect(() => {
     const fetchTasks = async () => {
       try {
         const storedTasks = await AsyncStorage.getItem('tasks');
-        if (storedTasks) {
+        if (storedTasks !== null) {
           setTasks(JSON.parse(storedTasks));
         }
       } catch (error) {
@@ -28,19 +23,37 @@ const TasksListScreen = () => {
     fetchTasks();
   }, []);
 
+  const addTask = async (task) => {
+    try {
+      const updatedTasks = [...tasks, task];
+      setTasks(updatedTasks);
+      await AsyncStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
+
   const handleEditTask = (task) => {
-    navigation.navigate("EditTask", { task });
+    navigation.navigate("EditTask", { taskId: task.id, taskDetails: task });
   };
 
-  const deleteTask = (taskId) => {
-    const updatedTasks = tasks.filter(task => task.id !== taskId);
-    setTasks(updatedTasks);
+  const deleteTask = async (taskId) => {
+    try {
+      const updatedTasks = tasks.filter(task => task.id !== taskId);
+      setTasks(updatedTasks);
+      await AsyncStorage.setItem('tasks', JSON.stringify(updatedTasks));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
   };
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item, index }) => (
     <Swipeable
       renderRightActions={() => (
-        <TouchableOpacity style={styles.deleteButton} onPress={() => deleteTask(item.id)}>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => deleteTask(item.id)}
+        >
           <Text style={styles.deleteButtonText}>Delete</Text>
         </TouchableOpacity>
       )}
@@ -48,7 +61,7 @@ const TasksListScreen = () => {
       <TouchableOpacity
         style={[
           styles.taskItem,
-          { backgroundColor: 'rgba(65, 105, 225, 0.5)' }
+          { backgroundColor: index % 2 === 0 ? 'rgba(65, 105, 225, 0.5)' : 'rgba(138, 43, 226, 0.5)' }
         ]}
         onPress={() => handleEditTask(item)}
       >
@@ -66,10 +79,10 @@ const TasksListScreen = () => {
       <FlatList
         data={tasks}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.taskList}
       />
-      <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate("AddTask")}>
+      <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate("AddTask", { addTask })}>
         <Text style={styles.addButtonIcon}>+</Text>
         <Text style={styles.addButtonText}>Add Tasks</Text>
       </TouchableOpacity>
@@ -149,10 +162,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
-    borderRadius: 20,
+    borderRadius: 10,
+    marginVertical: 10,
   },
   deleteButtonText: {
-    color: '#fff',
+    color: 'white',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
