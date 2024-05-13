@@ -15,6 +15,9 @@ import { StyleSheet } from 'react-native';
 import Timer from './Timer';
 import AlarmList from './AlarmList';
 import Alarm from './Alarm';
+import HomeScreen from './screens/HomeScreen';
+import AddNoteScreen from './screens/AddNoteScreen';
+
 const Stack = createStackNavigator();
 
 const App = () => {
@@ -28,6 +31,8 @@ const App = () => {
         <Stack.Screen name="Timer" component={Timer} />
         <Stack.Screen name="Alarmlist" component={AlarmList} />
         <Stack.Screen name="Alarm" component={Alarm} />
+        <Stack.Screen name="NoteHome" component={HomeScreen} />
+        <Stack.Screen name="AddNote" component={AddNoteScreen} />
         <Stack.Screen name="AddTask" component={AddTaskScreen} />
         <Stack.Screen name="EditTask" component={EditTaskScreen} />
         <Stack.Screen name="getstarted" component={getstarted} />
