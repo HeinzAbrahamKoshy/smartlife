@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native'; 
+
 import { Picker } from '@react-native-picker/picker';
+import { useNavigation } from '@react-navigation/native';
 
 const AddTaskScreen = () => {
-  const navigation = useNavigation(); // Initialize navigation
+  const navigation = useNavigation();
   const [taskName, setTaskName] = useState('');
   const [priority, setPriority] = useState('');
   const [dueDate, setDueDate] = useState(new Date());
@@ -16,45 +18,43 @@ const AddTaskScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
+  const generateRandomColor = () => {
+    const colors = ['#FF5733', '#33FF57', '#5733FF']; // Add more light colors if needed
+    const randomIndex = Math.floor(Math.random() * colors.length);
+    return colors[randomIndex];
+  };
+
   const handleAddTask = async () => {
     // Prepare task object
+    const color = generateRandomColor(); // Generate random color
     const task = {
-      id: String(new Date().getTime()), // Generate a unique ID for the task
+      id: Math.random().toString(),
       name: taskName,
       priority,
       dueDate: dueDate.toISOString().split('T')[0], // Format dueDate as YYYY-MM-DD
       dueTime: dueTime.toLocaleTimeString(), // Format dueTime as HH:MM:SS
       reminder,
+      color, // Assign random color
     };
 
-    try {
-      // Get existing tasks from AsyncStorage
-      const existingTasks = await AsyncStorage.getItem('tasks');
-      let updatedTasks = [];
-
-      if (existingTasks !== null) {
-        updatedTasks = JSON.parse(existingTasks);
-      }
-
-      // Add new task to the list
-      updatedTasks.push(task);
-
-      // Save updated tasks to AsyncStorage
-      await AsyncStorage.setItem('tasks', JSON.stringify(updatedTasks));
-
-      // Reset form fields
-      setTaskName('');
-      setPriority('');
-      setDueDate(new Date());
-      setDueTime(new Date());
-      setReminder(false);
-
-      console.log('Task added:', task);
-      // Navigate to TaskListScreen with the added task as a parameter
-      navigation.navigate('TasksList', { newTask: task });
-    } catch (error) {
-      console.error('Error adding task:', error);
+    // Update tasks list in AsyncStorage
+    const existingTasks = await AsyncStorage.getItem('tasks');
+    let updatedTasks = [];
+    if (existingTasks !== null) {
+      updatedTasks = JSON.parse(existingTasks);
     }
+    updatedTasks.push(task);
+    await AsyncStorage.setItem('tasks', JSON.stringify(updatedTasks));
+
+    // Reset form fields
+    setTaskName('');
+    setPriority('');
+    setDueDate(new Date());
+    setDueTime(new Date());
+    setReminder(false);
+
+    // Navigate back to TaskListScreen
+    navigation.navigate('TasksList');
   };
 
   const showDatePickerModal = () => {
@@ -94,6 +94,7 @@ const AddTaskScreen = () => {
         selectedValue={priority}
         style={styles.input}
         onValueChange={(itemValue) => setPriority(itemValue)}
+        
       >
         <Picker.Item label="High" value="High" />
         <Picker.Item label="Medium" value="Medium" />
@@ -160,10 +161,6 @@ const styles = StyleSheet.create({
   taskInput: {
     backgroundColor: 'rgba(138, 43, 226, 0.2)', // Lighter and more transparent purple shade
     height: 120, // Increased height
-    borderRadius: 10, // Rounded corners
-  },
-  priorityInput: {
-    backgroundColor: 'rgba(30, 144, 255, 0.2)', // Lighter and more transparent blue shade
     borderRadius: 10, // Rounded corners
   },
   datePickerContainer: {
