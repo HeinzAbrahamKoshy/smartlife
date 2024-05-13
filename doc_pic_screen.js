@@ -1,15 +1,18 @@
+import React, { useState, useEffect } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useState } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View, Modal, Image, Alert } from 'react-native';
-import { ImageManipulator } from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
-import { launchCamera, launchImageLibrary } from 'react-native-image-tools-wm';
+import { Button, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import { manipulateAsync, FlipType, SaveFormat } from 'expo-image-manipulator';
 
 export default function App() {
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
-  const [imageUri, setImageUri] = useState(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+
+  useEffect(() => {
+    if (permission?.granted) {
+      // Permission is granted, do any initial setup here.
+    }
+  }, [permission]);
 
   if (!permission) {
     // Camera permissions are still loading.
@@ -26,81 +29,80 @@ export default function App() {
     );
   }
 
-  const takePicture = async () => {
-    try {
-      const options = {
-        quality: 1, // Adjust quality as needed
-        base64: false, // Set to true for base64 data
-      };
+  function toggleCameraFacing() {
+    setFacing(current => (current === 'back' ? 'front' : 'back'));
+  }
 
-      const result = await launchCamera(options);
-      if (!result.didCancel) {
-        setImageUri(result.uri);
-        setModalVisible(true);
-      }
-    } catch (error) {
-      console.error('Error taking picture:', error);
-      Alert.alert('Error', 'Failed to take picture. Please try again.');
-    }
+  async function takePicture() {
+    if (!cameraRef) return; // Ensure the camera reference is available
+    const photo = await cameraRef.takePictureAsync();
+    const manipulatedImage = await manipulateAsync(
+      photo.uri,
+      [{ rotate: 90 }, { flip: FlipType.Vertical }],
+      { compress: 1, format: SaveFormat.PNG }
+    );
+    setCapturedImage(manipulatedImage);
+  }
+
+  const rotateLeft = async () => {
+    if (!capturedImage) return;
+    const rotatedImage = await manipulateAsync(
+      capturedImage.uri,
+      [{ rotate: -90 }],
+      { compress: 1, format: SaveFormat.PNG }
+    );
+    setCapturedImage(rotatedImage);
   };
 
-  const applyFilter = async (filterType) => {
-    if (imageUri) {
-      try {
-        const manipResult = await ImageManipulator.manipulateAsync(
-          imageUri,
-          [{ [filterType]: true }],
-          { compress: 1, format: 'png' }
-        );
-        setImageUri(manipResult.uri);
-      } catch (error) {
-        console.error('Error applying filter:', error);
-        Alert.alert('Error', 'Failed to apply filter. Please try again.');
-      }
-    }
+  const rotateRight = async () => {
+    if (!capturedImage) return;
+    const rotatedImage = await manipulateAsync(
+      capturedImage.uri,
+      [{ rotate: 90 }],
+      { compress: 1, format: SaveFormat.PNG }
+    );
+    setCapturedImage(rotatedImage);
   };
 
-  const handleSave = async () => {
-    if (imageUri) {
-      // Save the image to local storage
-      const dir = FileSystem.documentDirectory + 'capturedImages/';
-      const filename = 'captured_image.png';
-      await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
-      await FileSystem.moveAsync({ from: imageUri, to: dir + filename });
-
-      // Display success message
-      Alert.alert('Success', 'Image saved successfully.');
-    }
+  const cropImage = async () => {
+    if (!capturedImage) return;
+    const croppedImage = await manipulateAsync(
+      capturedImage.uri,
+      [{ crop: { originX: 0, originY: 0, width: 500, height: 400 } }],
+      { compress: 1, format: SaveFormat.PNG }
+    );
+    setCapturedImage(croppedImage);
   };
+
+  let cameraRef;
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing}>
+      <CameraView style={styles.camera} ref={ref => (cameraRef = ref)} facing={facing}>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={() => setFacing(current => (current === 'back' ? 'front' : 'back'))}>
+          <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
             <Text style={styles.text}>Flip Camera</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.button} onPress={takePicture}>
             <Text style={styles.text}>Take Picture</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={rotateLeft}>
+            <Text style={styles.text}>Rotate Left</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={rotateRight}>
+            <Text style={styles.text}>Rotate Right</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={cropImage}>
+            <Text style={styles.text}>Crop Image</Text>
+          </TouchableOpacity>
         </View>
       </CameraView>
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <Image source={{ uri: imageUri }} style={styles.image} />
-          <View style={styles.buttonContainer}>
-            <Button title="Close" onPress={() => setModalVisible(false)} />
-            <Button title="Apply Grayscale" onPress={() => applyFilter('grayscale')} />
-            <Button title="Apply Sepia" onPress={() => applyFilter('sepia')} />
-            <Button title="Save Image" onPress={handleSave} />
-          </View>
+      {capturedImage && (
+        <View style={styles.imagePreviewContainer}>
+          <Text style={styles.text}>Manipulated Image Preview:</Text>
+          <Image source={{ uri: capturedImage.uri }} style={styles.imagePreview} />
         </View>
-      </Modal>
+      )}
     </View>
   );
 }
@@ -115,28 +117,26 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    justifyContent: 'space-around', // Changed to space-around for better alignment
+    padding: 20,
     backgroundColor: 'transparent',
-    marginBottom: 20,
   },
   button: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 5,
+    backgroundColor: 'white',
     padding: 10,
+    borderRadius: 5,
   },
   text: {
-    color: 'white',
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  imagePreviewContainer: {
     alignItems: 'center',
+    marginTop: 20,
   },
-  image: {
-    width: '80%',
-    height: '80%',
-    marginBottom: 20,
+  imagePreview: {
+    width: 200,
+    height: 200,
+    marginTop: 10,
   },
 });
