@@ -1,8 +1,9 @@
+// Alarm.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import DateTimePickerModal from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Notifications } from 'react-native-notifications';
+import * as Notifications from 'expo-notifications';
 
 const Alarm = ({ navigation }) => {
   const [selectedTime, setSelectedTime] = useState(null);
@@ -22,8 +23,8 @@ const Alarm = ({ navigation }) => {
     // Check if Notifications is available before registering event listeners
     if (Notifications) {
       // Handle notifications initialization errors
-      Notifications.events().registerNotificationOpened((notification) => {
-        console.log(`Notification opened: ${notification.payload}`);
+      Notifications.addNotificationResponseReceivedListener(response => {
+        console.log(`Notification opened: ${response.notification.request.content.body}`);
       });
     } else {
       console.warn('Notifications are not available.');
@@ -51,11 +52,15 @@ const Alarm = ({ navigation }) => {
       notificationTime.setHours(parseInt(time.split(':')[0], 10));
       notificationTime.setMinutes(parseInt(time.split(':')[1], 10));
       if (Notifications) {
-        Notifications.postLocalNotification({
-          title: notificationTitle,
-          body: notificationBody,
-          fireDate: notificationTime.toISOString(),
-          repeatInterval: 'week',
+        Notifications.scheduleNotificationAsync({
+          content: {
+            title: notificationTitle,
+            body: notificationBody,
+          },
+          trigger: {
+            date: notificationTime,
+            repeats: true,
+          },
         });
       } else {
         console.warn('Notifications are not available.');
@@ -84,7 +89,7 @@ const Alarm = ({ navigation }) => {
       }
 
       // Navigate to the Alarm List screen
-      navigation.navigate('AlarmList');
+      navigation.navigate('Alarmlist', { refresh: true }); // Navigate and refresh list
     } catch (error) {
       console.error('Error saving alarm:', error);
       Alert.alert('Error', 'Failed to save alarm. Please try again.');
