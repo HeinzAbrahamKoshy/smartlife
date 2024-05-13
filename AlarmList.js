@@ -1,15 +1,20 @@
+// AlarmList.js
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Notifications } from 'react-native-notifications';
+import * as Notifications from 'expo-notifications';
 
 const AlarmList = ({ navigation }) => {
   const [alarms, setAlarms] = useState([]);
 
   useEffect(() => {
-    // Load alarms from AsyncStorage when component mounts
-    loadAlarms();
-  }, []);
+    // Load alarms from AsyncStorage when component mounts or navigates back
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadAlarms();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const loadAlarms = async () => {
     try {
@@ -33,24 +38,19 @@ const AlarmList = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const handleEditAlarm = (alarmId) => {
-    // Navigation logic to navigate to Edit Alarm screen with alarmId
-    navigation.navigate('EditAlarm', { alarmId });
-  };
-
   const handleDeleteAlarm = async (alarmId) => {
     try {
       // Remove alarm from AsyncStorage
       await AsyncStorage.removeItem(`alarm_${alarmId}`);
-      // Cancel any scheduled notifications for the alarm
-      Notifications.cancelLocalNotifications({ id: alarmId.toString() });
+      // Cancel all scheduled notifications
+      await Notifications.cancelAllScheduledNotificationsAsync();
       // Reload alarms
       loadAlarms();
     } catch (error) {
       console.error('Error deleting alarm:', error);
     }
   };
-  
+
   const handleNavigateToCreateAlarm = () => {
     // Navigation logic to navigate to Create Alarm screen
     navigation.navigate('Alarm');
@@ -86,6 +86,19 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     color: 'red',
+  },
+  addButton: {
+    backgroundColor: 'red',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 50,
+    marginBottom: 20, // Add margin to separate it from the list
+    alignSelf: 'center', // Center the button horizontally
+  },
+  addButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 
